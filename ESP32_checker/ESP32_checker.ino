@@ -107,36 +107,26 @@ void loop() {
   }
 
  if(Rxd_String!=""){
-     String Rxd_String_check = getValue(Rxd_String, '&', 0);
-     
-     if(Rxd_String_check=="act=rv"){
-        Rxd_String.remove(0,6); //remove "act=rv" from string
+    String raw_res  = getValue(Rxd_String, '?', 0);
+    String app_data = getValue(Rxd_String, '?', 1);
         
-        resource="/api/checker/update?";
-        String httpRequestData = "&api_key=" + apiKeyValue +"&"+
-                              Rxd_String +"";
-  
-        SerialMon.println(httpRequestData);
-        Serial.println();
-        String web_response = SendtoServer(httpRequestData);
-        Serial2.print(web_response); // Send response back to Bluetooth Module in Arduino
-        delay(10);
-        Serial.println(web_response);
-        digitalWrite(LEDPin, LOW);
-     }
-     else {
-        resource="/api/checker/data?";
-        String httpRequestData = "&api_key=" + apiKeyValue +"&"+
-                              Rxd_String +"";
-      
-        SerialMon.println(httpRequestData);
-        Serial.println();
-        String web_response = SendtoServer(httpRequestData);
-        Serial2.print(web_response); // Send response back to Bluetooth Module in Arduino
-        delay(10);
-        Serial.println(web_response);
-        digitalWrite(LEDPin, LOW);
-     }  
+    resource = "/api/" + raw_res + "?" ; //  "/api/checker/data?";
+    
+    Serial.println("Resource: " + resource);
+    Serial.println("Data: " + app_data);
+    Serial.println();
+    
+    String httpRequestData = "&api_key=" + apiKeyValue +"&"+
+                          app_data +"";
+    
+    SerialMon.println(httpRequestData);
+    Serial.println();
+    String web_response = SendtoServer(httpRequestData);
+    Serial2.print(web_response); // Send response back to Bluetooth Module in Arduino
+    delay(10);
+    Serial.println(web_response);
+    digitalWrite(LEDPin, LOW);
+     
   }
  Rxd_String="";
  delay(10);
