@@ -1,3 +1,10 @@
+#include "BluetoothSerial.h"
+
+#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
+#error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
+#endif
+
+
 #define RXD2 14
 #define TXD2 12
 String RxdChar;
@@ -34,7 +41,25 @@ String apiKeyValue = "SmartyMines1234";
 #define IP5306_REG_SYS_CTL0  0x00
 
 #define LEDPin            13
+#define BT_LED            32
 //#include <SoftwareSerial.h> 
+
+BluetoothSerial SerialBT;
+// Bt_Status callback function
+void Bt_Status (esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
+
+  if (event == ESP_SPP_SRV_OPEN_EVT) {
+    Serial.println ("Client Connected");
+    digitalWrite (BT_LED, HIGH);
+    // Do stuff if connected
+  }
+
+  else if (event == ESP_SPP_CLOSE_EVT ) {
+    Serial.println ("Client Disconnected");
+    digitalWrite (BT_LED, LOW);
+    // Do stuff if not connected
+  }
+}
 
 #include <Wire.h>
 #include <TinyGsmClient.h>
@@ -69,6 +94,11 @@ void setup()
   //Serial.begin(115200);
   Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
   pinMode(LEDPin, OUTPUT);
+  pinMode(BT_LED, OUTPUT);
+  digitalWrite (BT_LED, LOW);
+
+  SerialBT.begin("SM_Checker"); //Bluetooth device name
+  SerialBT.register_callback (Bt_Status);
 
   SerialMon.begin(115200);
   I2CPower.begin(I2C_SDA, I2C_SCL, 400000);
@@ -96,17 +126,24 @@ void loop() {
   
   while (Serial2.available()>0) {
     RxdChar = char(Serial2.read());
-    delay(2); //wait for the next byte, if after this nothing has arrived it means the text was not part of the same stream entered by the user
+    delay(1); //wait for the next byte, if after this nothing has arrived it means the text was not part of the same stream entered by the user
     Rxd_String+=RxdChar;
   }
-  if(Rxd_String!=""){
-    Serial.print(Rxd_String); 
-    digitalWrite(LEDPin, HIGH);
-    //delay(3000);
-    //digitalWrite(LEDPin, LOW);
+
+  while(SerialBT.available()>0) {
+    RxdChar = (char)SerialBT.read();
+    //delay(1); //wait for the next byte, if after this nothing has arrived it means the text was not part of the stream
+    Rxd_String+=RxdChar; 
   }
 
- if(Rxd_String!=""){
+  if(Rxd_String.length()<10&&Rxd_String!=""){
+    SerialBT.print(Rxd_String);
+    Serial.println(Rxd_String);
+  }
+ 
+ if(Rxd_String.length()>15){
+    digitalWrite(LEDPin, HIGH);
+    
     String raw_res  = getValue(Rxd_String, '?', 0);
     String app_data = getValue(Rxd_String, '?', 1);
         
@@ -122,7 +159,7 @@ void loop() {
     SerialMon.println(httpRequestData);
     Serial.println();
     String web_response = SendtoServer(httpRequestData);
-    Serial2.print(web_response); // Send response back to Bluetooth Module in Arduino
+    SerialBT.print(web_response); // Send response back to Bluetooth Module in Arduino
     delay(10);
     Serial.println(web_response);
     digitalWrite(LEDPin, LOW);
