@@ -9,6 +9,7 @@
 #define TXD2 12
 String RxdChar;
 String Rxd_String;
+String BT_String;
 
 const char apn[]      = "http.globe.com.ph"; 
 const char gprsUser[] = ""; 
@@ -125,15 +126,15 @@ void loop() {
  
   
   while (Serial2.available()>0) {
-    RxdChar = char(Serial2.read());
-    delay(1); //wait for the next byte, if after this nothing has arrived it means the text was not part of the same stream entered by the user
-    Rxd_String+=RxdChar;
+    Rxd_String = (Serial2.readStringUntil('\n'));
+    //delay(1); //wait for the next byte, if after this nothing has arrived it means the text was not part of the same stream entered by the user
+    //Rxd_String+=RxdChar;
   }
 
   while(SerialBT.available()>0) {
     RxdChar = (char)SerialBT.read();
     //delay(1); //wait for the next byte, if after this nothing has arrived it means the text was not part of the stream
-    Rxd_String+=RxdChar; 
+    BT_String+=RxdChar; 
   }
 
   if(Rxd_String.length()<10&&Rxd_String!=""){
@@ -141,11 +142,11 @@ void loop() {
     Serial.println(Rxd_String);
   }
  
- if(Rxd_String.length()>15){
+ if(BT_String.length()>15){
     digitalWrite(LEDPin, HIGH);
     
-    String raw_res  = getValue(Rxd_String, '?', 0);
-    String app_data = getValue(Rxd_String, '?', 1);
+    String raw_res  = getValue(BT_String, '?', 0);
+    String app_data = getValue(BT_String, '?', 1);
         
     resource = "/api/" + raw_res + "?" ; //  "/api/checker/data?";
     
@@ -166,7 +167,8 @@ void loop() {
      
   }
  Rxd_String="";
- delay(10);
+ BT_String="";
+ delay(1);
    
 }
 
